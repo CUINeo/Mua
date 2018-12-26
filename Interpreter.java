@@ -224,7 +224,6 @@ class Interpreter {
                         }
                     }
                 }
-
                 else if (operator.charAt(0) == ':') {
                     // :
                     // Dispose of the beginning :
@@ -299,23 +298,50 @@ class Interpreter {
                 }
                 else if (str.equals("export")) {
                     // export
+                    String value = Strin.next();
+                    Object obj;
+
+                    if (fl.isOp(value, ov.operators)) {
+                        obj = funcip.Execute(Strin, value);
+
+                        if (obj.getClass().getName().equals("DataStructure.Null")) {
+                            // Null return type
+                            fl.PrintFalseInfo("Null return type!", Strin);
+                            return n;
+                        }
+                        else
+                            value = obj.toString();
+                    }
+
+                    if (value.charAt(0) != '"') {
+                        fl.PrintFalseInfo("A name must start with \"", Strin);
+                        return n;
+                    }
+
+                    // Dispose of the starting "
+                    value = value.substring(1);
+
                     WordLib funcwl = funcip.wl;
                     ListLib funcll = funcip.ll;
 
                     for (Word w : funcwl.wordlist) {
-                        wl.add(w.name, w.value);
+                        if (w.name.equals(value)) {
+                            wl.add(w.name, w.value);
 
-                        // make operators
-                        if (fl.isOp(w.name, ov.operators))
-                            ov.operators.remove(w.name);
+                            // make operators
+                            if (fl.isOp(w.name, ov.operators))
+                                ov.operators.remove(w.name);
+                        }
                     }
 
                     for (List l : funcll.listlib) {
-                        ll.add(l.name, l.content);
+                        if (l.name.equals(value)) {
+                            ll.add(l.name, l.content);
 
-                        // make operators
-                        if (fl.isOp(l.name, ov.operators))
-                            ov.operators.remove(l.name);
+                            // make operators
+                            if (fl.isOp(l.name, ov.operators))
+                                ov.operators.remove(l.name);
+                        }
                     }
                 }
                 else if (str.equals("output")) {
@@ -330,7 +356,8 @@ class Interpreter {
                             // Null return type
                             fl.PrintFalseInfo("Null return type!", Strin);
                             return n;
-                        } else
+                        }
+                        else
                             value = obj.toString();
                     }
                     else {
@@ -800,6 +827,12 @@ class Interpreter {
                 return n;
             }
             name = name.substring(1);
+            if (fl.isOp(name, ov.operators)) {
+                // erase operators
+                ov.operators.remove(name);
+                return "\"" + name + "\" has been erased";
+            }
+
             boolean flag = fl.erase(wl, ll, name);
 
             if (!flag) {
