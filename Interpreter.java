@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Scanner;
 import DataStructure.*;
 
@@ -14,7 +15,15 @@ class Interpreter {
 //    private static final int _bool = 3;
 //    private static final int _list = 4;
 
-    void Run() {
+    WordLib getWordLib() {
+        return wl;
+    }
+
+    ListLib getListLib() {
+        return ll;
+    }
+
+    void Run() throws InterruptedException {
         // Print the prompt
         System.out.println("Welcome to MUA!");
         Scanner in = new Scanner(System.in);
@@ -39,13 +48,13 @@ class Interpreter {
         }
     }
 
-    private Object Execute(Scanner in, String operator) {
+    private Object Execute(Scanner in, String operator) throws InterruptedException {
         // Null return type
         Null n = new Null();
 
         // Branch according to the operator
         if (!(ov.operators.contains(operator) || operator.charAt(0) == ':' || ll.islist(operator))) {
-            // invalid input
+            // Invalid input
             fl.PrintFalseInfo("Invalid input!", in);
             return n;
         }
@@ -129,7 +138,7 @@ class Interpreter {
             ArrayList<String> arglist = new ArrayList<>();
             for (int i = 0; i < arg_num; i++) {
                 String temp = in.next();
-                if (fl.isOp(temp, ov.operators))
+                if (fl.isOp(temp, ov.operators, ll))
                     temp = Execute(in, temp).toString();
                 arglist.add(temp);
             }
@@ -147,25 +156,25 @@ class Interpreter {
             Scanner Strin = new Scanner(funcinstr.toString());
             Interpreter funcip = new Interpreter();
             String ret = null;
+
             while (Strin.hasNext()) {
                 String str = Strin.next();
                 if (str.equals("stop") || str.equals("exit")) {
-                    // stop / exit
+                    // function stop / exit
                     if (ret != null)
                         return ret;
                 }
                 else if (operator.equals("thing")) {
-                    // thing
+                    // function thing
                     String name = Strin.next();
 
                     // Check if the name is an instruction
-                    if (fl.isOp(name, ov.operators))
+                    if (funcip.fl.isOp(name, funcip.ov.operators, funcip.ll))
                         name = Execute(Strin, name).toString();
 
                     if (name.charAt(0) != '"') {
                         // The word doesn't begin with "
-                        fl.PrintFalseInfowithoutFlush("Missing \" before the name!");
-                        return n;
+                        funcip.fl.PrintFalseInfowithoutFlush("Missing \" before the name!");
                     }
                     else {
                         // Dispose of the beginning "
@@ -217,15 +226,13 @@ class Interpreter {
                                 }
                             }
                         }
-                        else {
+                        else
                             // Word name doesn't exist
                             fl.PrintFalseInfowithoutFlush("There is no name \"" + name + "\"!");
-                            return n;
-                        }
                     }
                 }
                 else if (operator.charAt(0) == ':') {
-                    // :
+                    // function :
                     // Dispose of the beginning :
                     String name = operator.substring(1);
                     if (name.length() == 0) {
@@ -235,7 +242,7 @@ class Interpreter {
                     }
 
                     // Check is the name is an instruction
-                    if (fl.isOp(name, ov.operators))
+                    if (funcip.fl.isOp(name, funcip.ov.operators, funcip.ll))
                         name = Execute(in, name).toString().substring(1);
 
                     if (fl.isname(wl, name) || funcip.fl.isname(funcip.wl, name)) {
@@ -284,38 +291,70 @@ class Interpreter {
                             }
                         }
                     }
-                    else {
+                    else
                         // Word name doesn't exist
                         fl.PrintFalseInfowithoutFlush("There is no name \"" + name + "\"!");
-                        return n;
-                    }
                 }
                 else if (str.equals("erase")) {
-                    // erase
-                    if (Execute(Strin, str).getClass().getName().equals("DataStructure.Null"))
-                        // name not in this namespace
-                        Execute(in, str);
+                    // function erase
+                    String name = Strin.next();
+
+                    // Check if the name is an instruction
+                    if (funcip.fl.isOp(name, funcip.ov.operators, funcip.ll))
+                        name = Execute(Strin, name).toString();
+
+                    if (name.charAt(0) != '"') {
+                        // The word doesn't begin with "
+                        fl.PrintFalseInfowithoutFlush("Missing \" before the name!");
+                        continue;
+                    }
+                    name = name.substring(1);
+
+                    boolean flag;
+
+                    if (funcip.fl.isOp(name, funcip.ov.operators, funcip.ll)) {
+                        // erase operators
+                        funcip.ov.operators.remove(name);
+                        continue;
+                    }
+
+                    flag = funcip.fl.erase(funcip.wl, funcip.ll, name);
+                    if (flag)
+                        continue;
+
+                    // Not in this namespace
+                    if (fl.isOp(name, ov.operators, ll)) {
+                        // erase outer namespace's operators
+                        ov.operators.remove(name);
+                        continue;
+                    }
+
+                    flag = fl.erase(wl, ll, name);
+
+                    if (!flag)
+                        // Word(List) name doesn't exist
+                        fl.PrintFalseInfowithoutFlush("There is no name \"" + name + "\"!");
                 }
                 else if (str.equals("export")) {
-                    // export
+                    // function export
                     String value = Strin.next();
                     Object obj;
 
-                    if (fl.isOp(value, ov.operators)) {
+                    if (funcip.fl.isOp(value, funcip.ov.operators, funcip.ll)) {
                         obj = funcip.Execute(Strin, value);
 
                         if (obj.getClass().getName().equals("DataStructure.Null")) {
                             // Null return type
-                            fl.PrintFalseInfo("Null return type!", Strin);
-                            return n;
+                            fl.PrintFalseInfowithoutFlush("Null return type!");
+                            continue;
                         }
                         else
                             value = obj.toString();
                     }
 
                     if (value.charAt(0) != '"') {
-                        fl.PrintFalseInfo("A name must start with \"", Strin);
-                        return n;
+                        fl.PrintFalseInfowithoutFlush("A name must start with \"");
+                        continue;
                     }
 
                     // Dispose of the starting "
@@ -329,7 +368,7 @@ class Interpreter {
                             wl.add(w.name, w.value);
 
                             // make operators
-                            if (fl.isOp(w.name, ov.operators))
+                            if (fl.isOp(w.name, ov.operators, ll))
                                 ov.operators.remove(w.name);
                         }
                     }
@@ -339,23 +378,23 @@ class Interpreter {
                             ll.add(l.name, l.content);
 
                             // make operators
-                            if (fl.isOp(l.name, ov.operators))
+                            if (fl.isOp(l.name, ov.operators, ll))
                                 ov.operators.remove(l.name);
                         }
                     }
                 }
                 else if (str.equals("output")) {
-                    // output
+                    // function output
                     String value = Strin.next();
                     Object obj;
 
-                    if (fl.isOp(value, ov.operators)) {
+                    if (funcip.fl.isOp(value, funcip.ov.operators, funcip.ll)) {
                         obj = funcip.Execute(Strin, value);
 
                         if (obj.getClass().getName().equals("DataStructure.Null")) {
                             // Null return type
-                            fl.PrintFalseInfo("Null return type!", Strin);
-                            return n;
+                            fl.PrintFalseInfowithoutFlush("Null return type!");
+                            continue;
                         }
                         else
                             value = obj.toString();
@@ -368,12 +407,21 @@ class Interpreter {
                     // Set return value
                     ret = value;
                 }
+                else if (str.equals("erall")) {
+                    // function erase all
+                    funcip.fl.erall(funcip);
+                }
+                else if (str.equals("poall")) {
+                    // function post all
+                    funcip.fl.poall(funcip);
+                }
                 else
+                    // function execute
                     funcip.Execute(Strin, str);
             }
 
             // Default return
-            return n;
+            return Objects.requireNonNullElse(ret, n);
         }
 
         else if (operator.equals("make")) {
@@ -395,7 +443,7 @@ class Interpreter {
                     return n;
                 }
 
-                if (fl.isOp(value, ov.operators)) {
+                if (fl.isOp(value, ov.operators, ll)) {
                     // value is an operator
                     value = Execute(in, value).toString();
 
@@ -494,7 +542,7 @@ class Interpreter {
             String str = in.next();
             Object obj;
 
-            if (fl.isOp(str, ov.operators)) {
+            if (fl.isOp(str, ov.operators, ll)) {
                 obj = Execute(in, str);
 
                 if (obj.getClass().getName().equals("DataStructure.Null")) {
@@ -514,12 +562,12 @@ class Interpreter {
                 return n;
             }
 
-            // Get the number of execution time
+            // Get the number of execution times
             int num = Integer.valueOf(str);
 
             str = in.next();
 
-            if (fl.isOp(str, ov.operators)) {
+            if (fl.isOp(str, ov.operators, ll)) {
                 obj = Execute(in, str);
 
                 if (obj.getClass().getName().equals("DataStructure.Null")) {
@@ -571,7 +619,7 @@ class Interpreter {
             String str = in.next();
             Object obj;
 
-            if (fl.isOp(str, ov.operators)) {
+            if (fl.isOp(str, ov.operators, ll)) {
                 obj = Execute(in, str);
 
                 if (obj.getClass().getName().equals("DataStructure.Null")) {
@@ -599,7 +647,7 @@ class Interpreter {
             String str = in.next();
             Object obj;
 
-            if (fl.isOp(str, ov.operators)) {
+            if (fl.isOp(str, ov.operators, ll)) {
                 obj = Execute(in, str);
 
                 if (obj.getClass().getName().equals("DataStructure.Null")) {
@@ -635,7 +683,7 @@ class Interpreter {
             String str = in.next();
             Object obj;
 
-            if (fl.isOp(str, ov.operators)) {
+            if (fl.isOp(str, ov.operators, ll)) {
                 obj = Execute(in, str);
 
                 if (obj.getClass().getName().equals("DataStructure.Null")) {
@@ -670,7 +718,7 @@ class Interpreter {
             String str = in.next();
             Object obj;
 
-            if (fl.isOp(str, ov.operators)) {
+            if (fl.isOp(str, ov.operators, ll)) {
                 obj = Execute(in, str);
 
                 if (obj.getClass().getName().equals("DataStructure.Null")) {
@@ -696,7 +744,7 @@ class Interpreter {
             String str = in.next();
             Object obj;
 
-            if (fl.isOp(str, ov.operators)) {
+            if (fl.isOp(str, ov.operators, ll)) {
                 obj = Execute(in, str);
 
                 if (obj.getClass().getName().equals("DataStructure.Null")) {
@@ -725,7 +773,7 @@ class Interpreter {
             String name = in.next();
 
             // Check if the name is an instruction
-            if (fl.isOp(name, ov.operators))
+            if (fl.isOp(name, ov.operators, ll))
                 name = Execute(in, name).toString();
 
             if (name.charAt(0) != '"') {
@@ -781,8 +829,8 @@ class Interpreter {
                 name += temp;
             }
 
-            // Check is the name is an instruction
-            if (fl.isOp(name, ov.operators))
+            // Check if the name is an instruction
+            if (fl.isOp(name, ov.operators, ll))
                 name = Execute(in, name).toString().substring(1);
 
             if (fl.isname(wl, name)) {
@@ -821,13 +869,19 @@ class Interpreter {
         else if (operator.equals("erase")) {
             // erase
             String name = in.next();
+
+            // Check if the name is an instruction
+            if (fl.isOp(name, ov.operators, ll))
+                name = Execute(in, name).toString().substring(1);
+
             if (name.charAt(0) != '"') {
                 // The word doesn't begin with "
                 fl.PrintFalseInfo("Missing \" before the name!", in);
                 return n;
             }
             name = name.substring(1);
-            if (fl.isOp(name, ov.operators)) {
+
+            if (fl.isOp(name, ov.operators, ll)) {
                 // erase operators
                 ov.operators.remove(name);
                 return "\"" + name + "\" has been erased";
@@ -848,7 +902,7 @@ class Interpreter {
             // print
             String operand = in.next();
 
-            if (fl.isOp(operand, ov.operators)) {
+            if (fl.isOp(operand, ov.operators, ll)) {
                 // Execute the instruction
                 Object obj = Execute(in, operand);
 
@@ -882,7 +936,7 @@ class Interpreter {
             // arithmetical operation
             // Get the first operand
             String firstoperand = in.next();
-            if (fl.isOp(firstoperand, ov.operators)) {
+            if (fl.isOp(firstoperand, ov.operators, ll)) {
                 if (Execute(in, firstoperand).getClass().getName().equals("DataStructure.Null")) {
                     fl.PrintFalseInfo("Invalid input!", in);
                     return n;
@@ -892,7 +946,7 @@ class Interpreter {
 
             // Get the second operand
             String secondoperand = in.next();
-            if (fl.isOp(secondoperand, ov.operators)) {
+            if (fl.isOp(secondoperand, ov.operators, ll)) {
                 if (Execute(in, secondoperand).getClass().getName().equals("DataStructure.Null")) {
                     fl.PrintFalseInfo("Invalid input!", in);
                     return n;
@@ -922,7 +976,7 @@ class Interpreter {
 
             // Get the first operand
             String firstoperand = in.next();
-            if (fl.isOp(firstoperand, ov.operators)) {
+            if (fl.isOp(firstoperand, ov.operators, ll)) {
                 if (Execute(in, firstoperand).getClass().getName().equals("DataStructure.Null")) {
                     fl.PrintFalseInfo("Invalid input!", in);
                     return n;
@@ -932,7 +986,7 @@ class Interpreter {
 
             // Get the second operand
             String secondoperand = in.next();
-            if (fl.isOp(secondoperand, ov.operators)) {
+            if (fl.isOp(secondoperand, ov.operators, ll)) {
                 if (Execute(in, secondoperand).getClass().getName().equals("DataStructure.Null")) {
                     fl.PrintFalseInfo("Invalid input!", in);
                     return n;
@@ -1019,7 +1073,7 @@ class Interpreter {
 
             // Get the first operand
             String firstoperand = in.next();
-            if (fl.isOp(firstoperand, ov.operators))
+            if (fl.isOp(firstoperand, ov.operators, ll))
                 firstoperand = Execute(in, firstoperand).toString();
 
             // Dispose of the possible "
@@ -1035,7 +1089,7 @@ class Interpreter {
 
             // Get the second operand
             String secondoperand = in.next();
-            if (fl.isOp(secondoperand, ov.operators))
+            if (fl.isOp(secondoperand, ov.operators, ll))
                 secondoperand = Execute(in, secondoperand).toString();
 
             // Dispose of the possible "
@@ -1076,7 +1130,7 @@ class Interpreter {
             if (operand.charAt(0) == '"')
                 operand = operand.substring(1);
 
-            if (fl.isOp(operand, ov.operators))
+            if (fl.isOp(operand, ov.operators, ll))
                 operand = Execute(in, operand).toString();
             if (!operand.equals("true") && !operand.equals("false")) {
                 // Type dismatch
@@ -1136,6 +1190,111 @@ class Interpreter {
             double ret = Math.floor(num);
 
             return String.valueOf((int)ret);
+        }
+
+        else if (operator.equals("erall")) {
+            // erase all
+            fl.erall(this);
+        }
+
+        else if (operator.equals("poall")) {
+            // post all
+            fl.poall(this);
+        }
+
+        else if (operator.equals("save")) {
+            // save
+        }
+
+        else if (operator.equals("load")) {
+            // load
+        }
+
+        else if (operator.equals("wait")) {
+            // wait
+            String str = in.next();
+            Object obj;
+
+            if (fl.isOp(str, ov.operators, ll)) {
+                obj = Execute(in, str);
+
+                if (obj.getClass().getName().equals("DataStructure.Null")) {
+                    // Null return type
+                    fl.PrintFalseInfo("Null return type!", in);
+                    return n;
+                } else
+                    str = obj.toString();
+            }
+
+            // Dispose of the starting "
+            if (str.charAt(0) == '"')
+                str = str.substring(1);
+
+            if (!fl.isInt(str)) {
+                fl.PrintFalseInfo("Require an integer!", in);
+                return n;
+            }
+
+            // Get sleep time
+            int ms = Integer.valueOf(str);
+
+            Thread.sleep(ms);
+            return ms + " ms has passed.";
+        }
+
+        else if (operator.equals("pi")) {
+            // pi
+            return "3.14159";
+        }
+
+        else if (operator.equals("run")) {
+            // run
+            String str = in.next();
+            Object obj;
+
+            if (fl.isOp(str, ov.operators, ll)) {
+                obj = Execute(in, str);
+
+                if (obj.getClass().getName().equals("DataStructure.Null")) {
+                    // Null return type
+                    fl.PrintFalseInfo("Null return type!", in);
+                    return n;
+                } else {
+                    str = obj.toString();
+                    if (str.charAt(0) != '[' || str.charAt(str.length()-1) != ']') {
+                        // Not a list
+                        fl.PrintFalseInfo("Require a list!", in);
+                        return n;
+                    }
+                }
+            }
+            else {
+                String temp = in.nextLine();
+                str += temp;
+                if (str.charAt(0) != '[' || str.charAt(str.length()-1) != ']') {
+                    // Not a list
+                    fl.PrintFalseInfo("Require a list!", in);
+                    return n;
+                }
+            }
+
+            // Dispose of [ and ]
+            str = str.substring(1, str.length()-1);
+
+            // Execute
+            Scanner Strin = new Scanner(str + "\n");
+            while (Strin.hasNext()) {
+                String temp = Strin.next();
+                Object retobj = Execute(Strin, temp);
+
+                // Exit the interpreter
+                if (retobj.getClass().getName().equals("DataStructure.Exit"))
+                    return new Exit();
+
+                // Output has a value
+                if (!(retobj.getClass().getName().equals("DataStructure.Null")))
+                    System.out.println(retobj.toString());
+            }
         }
 
         else if (operator.equals("//")) {

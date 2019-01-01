@@ -35,5 +35,21 @@ public class OpValid {
         operators.add("int");
         operators.add("exit");
         operators.add("//");
+        operators.add("word");
+        operators.add("if");
+        operators.add("sentence");
+        operators.add("list");
+        operators.add("join");
+        operators.add("first");
+        operators.add("last");
+        operators.add("butfirst");
+        operators.add("butlast");
+        operators.add("wait");
+        operators.add("save");
+        operators.add("load");
+        operators.add("erall");
+        operators.add("poall");
+        operators.add("pi");
+        operators.add("run");
     }
 }

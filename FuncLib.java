@@ -2,6 +2,7 @@ import DataStructure.*;
 
 import java.util.HashSet;
 import java.util.Scanner;
+import java.util.ArrayList;
 
 // Class of functions
 class FuncLib {
@@ -62,8 +63,8 @@ class FuncLib {
     }
 
     // Check whether str is an operator
-    boolean isOp(String str, HashSet<String> valid) {
-        return str.charAt(0) == ':' || valid.contains(str);
+    boolean isOp(String str, HashSet<String> valid, ListLib ll) {
+        return str.charAt(0) == ':' || valid.contains(str) || (isFunc(str, ll));
     }
 
     // Check whether the starting character is a letter
@@ -177,5 +178,66 @@ class FuncLib {
 
         double ret = a / b;
         return String.valueOf(ret);
+    }
+
+//    boolean save(Interpreter ip, String filename) {
+//
+//    }
+//
+//    boolean load(Interpreter ip, String filename) {
+//
+//    }
+
+    void erall(Interpreter ip) {
+        WordLib wl = ip.getWordLib();
+        ListLib ll = ip.getListLib();
+
+        ArrayList<String> names = new ArrayList<>();
+
+        for (Word w : wl.wordlist)
+            names.add(w.name);
+        for (List l : ll.listlib)
+            names.add(l.name);
+
+        for (String name : names)
+            this.erase(wl, ll, name);
+
+        System.out.println("Erase all succeed.");
+    }
+
+    void poall(Interpreter ip) {
+        WordLib wl = ip.getWordLib();
+        ListLib ll = ip.getListLib();
+
+        if (wl.wordlist.isEmpty()) {
+            // No word
+            System.out.println("No defined word.");
+        }
+        else {
+            System.out.println("Here are all the words:");
+            System.out.printf("%-8s\t%s\n", "name", "content");
+            for (Word w : wl.wordlist)
+                System.out.printf("%-8s\t%s\n", w.name, w.value);
+        }
+
+        System.out.println();
+
+        if (ll.listlib.isEmpty()) {
+            System.out.println("No defined list.");
+        }
+        else {
+            System.out.println("Here are all the lists:");
+            System.out.printf("%-8s\t%s\n", "name", "content");
+            for (List l : ll.listlib) {
+                StringBuilder out = new StringBuilder("[ ");
+                for (String string : l.content) {
+                    out.append(string);
+                    out.append(" ");
+                }
+                out.append(" ]");
+
+                System.out.printf("%-8s\t%s\n", l.name, out.toString());
+            }
+        }
     }
 }
