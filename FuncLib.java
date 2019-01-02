@@ -1,5 +1,6 @@
 import DataStructure.*;
 
+import java.io.*;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.ArrayList;
@@ -180,13 +181,72 @@ class FuncLib {
         return String.valueOf(ret);
     }
 
-//    boolean save(Interpreter ip, String filename) {
-//
-//    }
-//
-//    boolean load(Interpreter ip, String filename) {
-//
-//    }
+    void save(Interpreter ip, String path) {
+        try {
+            File file = new File(path);
+
+            FileWriter writer = new FileWriter(file);
+            BufferedWriter bufferedWriter = new BufferedWriter(writer);
+
+            WordLib wl = ip.getWordLib();
+            ListLib ll = ip.getListLib();
+            String string;
+
+            for (Word w : wl.wordlist) {
+                string = w.name + " " + w.value;
+                bufferedWriter.write(string);
+                bufferedWriter.write("\r\n");
+            }
+            for (List l : ll.listlib) {
+                StringBuilder temp = new StringBuilder("[ ");
+                for (String s : l.content) {
+                    temp.append(s);
+                    temp.append(" ");
+                }
+                temp.append("]");
+
+                string = l.name + " " + temp;
+                bufferedWriter.write(string);
+                bufferedWriter.write("\r\n");
+            }
+
+            bufferedWriter.flush();
+            bufferedWriter.close();
+            writer.close();
+            System.out.println("Save to \"" + path + "\" successfully.");
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    void load(Interpreter ip, String path) {
+        try (FileReader reader = new FileReader(path);
+             BufferedReader bufferedReader = new BufferedReader(reader)) {
+            String string;
+            StringBuilder temp = new StringBuilder();
+
+            while ((string = bufferedReader.readLine()) != null) {
+                temp.append("make \"");
+                temp.append(string);
+                temp.append(" ");
+            }
+            System.out.println(temp);
+
+            Scanner Loadin = new Scanner(temp.toString());
+            while (Loadin.hasNext()) {
+                String str = Loadin.next();
+                ip.Execute(Loadin, str);
+            }
+
+            bufferedReader.close();
+            reader.close();
+            System.out.println("Load from \"" + path + "\" successfully.");
+        }
+        catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     void erall(Interpreter ip) {
         WordLib wl = ip.getWordLib();

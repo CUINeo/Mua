@@ -48,7 +48,7 @@ class Interpreter {
         }
     }
 
-    private Object Execute(Scanner in, String operator) throws InterruptedException {
+    Object Execute(Scanner in, String operator) throws InterruptedException {
         // Null return type
         Null n = new Null();
 
@@ -407,6 +407,62 @@ class Interpreter {
                     // Set return value
                     ret = value;
                 }
+                else if (str.equals("save")) {
+                    // function save
+                    String string = in.next();
+                    Object obj;
+
+                    if (fl.isOp(string, ov.operators, ll)) {
+                        obj = Execute(Strin, string);
+
+                        if (obj.getClass().getName().equals("DataStructure.Null")) {
+                            // Null return type
+                            fl.PrintFalseInfowithoutFlush("Null return type!");
+                            continue;
+                        } else
+                            string = obj.toString();
+                    }
+
+                    // Dispose of the starting "
+                    if (string.charAt(0) == '"')
+                        string = string.substring(1);
+
+                    String path;
+                    if (string.endsWith(".txt"))
+                        path = string;
+                    else
+                        path = string + ".txt";
+
+                    funcip.fl.save(funcip, path);
+                }
+                else if (str.equals("load")) {
+                    // function load
+                    String string = in.next();
+                    Object obj;
+
+                    if (fl.isOp(string, ov.operators, ll)) {
+                        obj = Execute(Strin, string);
+
+                        if (obj.getClass().getName().equals("DataStructure.Null")) {
+                            // Null return type
+                            fl.PrintFalseInfowithoutFlush("Null return type!");
+                            continue;
+                        } else
+                            string = obj.toString();
+                    }
+
+                    // Dispose of the starting "
+                    if (string.charAt(0) == '"')
+                        string = string.substring(1);
+
+                    String path;
+                    if (string.endsWith(".txt"))
+                        path = string;
+                    else
+                        path = string + ".txt";
+
+                    funcip.fl.load(funcip, path);
+                }
                 else if (str.equals("erall")) {
                     // function erase all
                     funcip.fl.erall(funcip);
@@ -476,7 +532,6 @@ class Interpreter {
                 else {
                     // value is not an operator
                     if (value.charAt(0) == '[') {
-                        //
                         // Make list
 
                         // Get the whole list
@@ -513,7 +568,7 @@ class Interpreter {
                             return n;
                         } else {
                             // Dispose of [ and ]
-                            value = value.substring(1, value.length() - 1);
+                            value = value.substring(1, value.length() - 1).trim();
 
                             String[] content = value.split(" ");
                             fl.makelist(ll, name, content);
@@ -1204,10 +1259,60 @@ class Interpreter {
 
         else if (operator.equals("save")) {
             // save
+            String str = in.next();
+            Object obj;
+
+            if (fl.isOp(str, ov.operators, ll)) {
+                obj = Execute(in, str);
+
+                if (obj.getClass().getName().equals("DataStructure.Null")) {
+                    // Null return type
+                    fl.PrintFalseInfo("Null return type!", in);
+                    return n;
+                } else
+                    str = obj.toString();
+            }
+
+            // Dispose of the starting "
+            if (str.charAt(0) == '"')
+                str = str.substring(1);
+
+            String path;
+            if (str.endsWith(".txt"))
+                path = str;
+            else
+                path = str + ".txt";
+
+            fl.save(this, path);
         }
 
         else if (operator.equals("load")) {
             // load
+            String str = in.next();
+            Object obj;
+
+            if (fl.isOp(str, ov.operators, ll)) {
+                obj = Execute(in, str);
+
+                if (obj.getClass().getName().equals("DataStructure.Null")) {
+                    // Null return type
+                    fl.PrintFalseInfo("Null return type!", in);
+                    return n;
+                } else
+                    str = obj.toString();
+            }
+
+            // Dispose of the starting "
+            if (str.charAt(0) == '"')
+                str = str.substring(1);
+
+            String path;
+            if (str.endsWith(".txt"))
+                path = str;
+            else
+                path = str + ".txt";
+
+            fl.load(this, path);
         }
 
         else if (operator.equals("wait")) {
