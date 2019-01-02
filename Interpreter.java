@@ -1430,6 +1430,10 @@ class Interpreter {
             // Dispose of [ , ] and spaces
             list = list.substring(1, list.length()-1).trim();
 
+            // Dispose of the starting "
+            if (value.charAt(0) == '"')
+                value = value.substring(1);
+
             // Append value
             if (list.length() != 0)
                 list = list + " " + value;
