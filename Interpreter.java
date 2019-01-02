@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
 import DataStructure.*;
@@ -1238,23 +1239,299 @@ class Interpreter {
 
         else if (operator.equals("if")) {
             // if
+            // Bool variable
+            Object obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Require a bool variable!", in);
+                return n;
+            }
+
+            String bool = obj.toString();
+            if (!fl.isBool(bool)) {
+                // Not bool
+                fl.PrintFalseInfo("Require a bool variable!", in);
+                return n;
+            }
+
+            // First list
+            obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Require a list!", in);
+                return n;
+            }
+
+            String list1 = obj.toString();
+            if (list1.charAt(0) != '[' || list1.charAt(list1.length()-1) != ']') {
+                // Not a list
+                fl.PrintFalseInfo("Require a list!", in);
+                return n;
+            }
+
+            // Second list
+            obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Require a list!", in);
+                return n;
+            }
+
+            String list2 = obj.toString();
+            if (list2.charAt(0) != '[' || list2.charAt(list2.length()-1) != ']') {
+                // Not a list
+                fl.PrintFalseInfo("Require a list!", in);
+                return n;
+            }
+
+            // Dispose of [ and ]
+            list1 = list1.substring(1, list1.length()-1);
+            list2 = list2.substring(1, list2.length()-1);
+
+            // Execute
+            Scanner Strin;
+            if (bool.equals("true"))
+                Strin = new Scanner(list1);
+            else
+                Strin = new Scanner(list2);
+
+            while (Strin.hasNext()) {
+                String temp = Strin.next();
+                Object retobj = Execute(Strin, temp);
+
+                // Exit the interpreter
+                if (retobj.getClass().getName().equals("DataStructure.Exit"))
+                    return new Exit();
+
+                // Output has a value
+                if (!(retobj.getClass().getName().equals("DataStructure.Null")))
+                    System.out.println(retobj.toString());
+            }
         }
 
-        else if (operator.equals("sentence")) {
+        else if (operator.equals("sentence") || operator.equals("list")) {
+            // sentence / list
+            // First value
+            Object obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Illegal value!", in);
+                return n;
+            }
+
+            String value1 = obj.toString();
+            if ((value1.charAt(0) != '[' || value1.charAt(value1.length()-1) != ']')
+                && value1.charAt(0) != '"' && !fl.isBool(value1) && !fl.isNum(value1)) {
+                // Invalid value
+                fl.PrintFalseInfo("Illegal value!", in);
+                return n;
+            }
+
+            // Second value
+            obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Illegal value!", in);
+                return n;
+            }
+
+            String value2 = obj.toString();
+            if ((value2.charAt(0) != '[' || value2.charAt(value2.length()-1) != ']')
+                && value2.charAt(0) != '"' && !fl.isBool(value2) && !fl.isNum(value2)) {
+                // Invalid value
+                fl.PrintFalseInfo("Illegal value!", in);
+                return n;
+            }
+
+            // Dispose of the starting "
+            if (value1.charAt(0) == '"')
+                value1 = value1.substring(1);
+            if (value2.charAt(0) == '"')
+                value2 = value2.substring(1);
+
+            if (operator.equals("list"))
+                // list
+                return "[" + value1 + " " + value2 + "]";
+
             // sentence
-        }
+            ArrayList<String> content1 = new ArrayList<>();
+            ArrayList<String> content2 = new ArrayList<>();
 
-        else if (operator.equals("list")) {
-            // list
+            // Get first content
+            if (value1.charAt(0) == '[') {
+                // value1 is list
+                value1 = value1.substring(1, value1.length()-1).trim();
+                content1.addAll(Arrays.asList(value1.split(" ")));
+            }
+            else {
+                // value1 is word
+                content1.add(value1);
+            }
+
+            // Get second content
+            if (value2.charAt(0) == '[') {
+                // value1 is list
+                value2 = value2.substring(1, value2.length()-1).trim();
+                content2.addAll(Arrays.asList(value2.split(" ")));
+            }
+            else {
+                // value1 is word
+                content2.add(value2);
+            }
+
+            // Get content
+            content1.addAll(content2);
+
+            StringBuilder ret = new StringBuilder("[");
+            for (int i = 0; i < content1.size(); i++) {
+                String s = content1.get(i);
+                ret.append(s);
+                if (i != content1.size() - 1)
+                    ret.append(" ");
+            }
+            ret.append("]");
+
+            return ret.toString();
         }
 
         else if (operator.equals("join")) {
             // join
+            // List
+            Object obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Require a list!", in);
+                return n;
+            }
+
+            String list = obj.toString();
+            if (list.charAt(0) != '[' || list.charAt(list.length()-1) != ']') {
+                // Not a list
+                fl.PrintFalseInfo("Require a list!", in);
+                return n;
+            }
+
+            // Value
+            obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Illegal value!", in);
+                return n;
+            }
+
+            String value = obj.toString();
+            if ((value.charAt(0) != '[' || value.charAt(value.length()-1) != ']')
+                    && value.charAt(0) != '"' && !fl.isBool(value) && !fl.isNum(value)) {
+                // Invalid value
+                fl.PrintFalseInfo("Illegal value!", in);
+                return n;
+            }
+
+            // Dispose of [ , ] and spaces
+            list = list.substring(1, list.length()-1).trim();
+
+            // Append value
+            if (list.length() != 0)
+                list = list + " " + value;
+            else
+                list = value;
+
+            return "[" + list + "]";
         }
 
-        else if (operator.equals("first") || operator.equals("last")
-                || operator.equals("butfirst") || operator.equals("butlast")) {
+        else if (operator.equals("first") || operator.equals("last") ||
+                operator.equals("butfirst") || operator.equals("butlast")) {
             // first / last / butfirst / butlast
+            // Value
+            Object obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Illegal value!", in);
+                return n;
+            }
+
+            String value = obj.toString();
+            if ((value.charAt(0) != '[' || value.charAt(value.length()-1) != ']')
+                    && value.charAt(0) != '"' && !fl.isBool(value) && !fl.isNum(value)) {
+                // Invalid value
+                fl.PrintFalseInfo("Illegal value!", in);
+                return n;
+            }
+
+            if (value.charAt(0) == '[') {
+                // List
+                // Dispose of [ , ] and spaces
+                value = value.substring(1, value.length() - 1).trim();
+                String [] strings = value.split(" ");
+
+                // value is empty
+                if (strings.length == 0) {
+                    if (operator.equals("first") || operator.equals("last"))
+                        // first / last
+                        return "\"";
+                    else
+                        // butfirst / butlast
+                        return "[]";
+                }
+
+                // value is not empty
+                StringBuilder temp;
+
+                switch (operator) {
+                    case "first":
+                        // first
+                        return "\"" + strings[0];
+                    case "last":
+                        // last
+                        return "\"" + strings[strings.length - 1];
+                    case "butfirst":
+                        // butfirst
+                        temp = new StringBuilder("[");
+                        for (int i = 1; i < strings.length; i++) {
+                            temp.append(strings[i]);
+                            if (i != strings.length - 1)
+                                temp.append(" ");
+                        }
+                        temp.append("]");
+                        return temp.toString();
+                    default:
+                        // butlast
+                        temp = new StringBuilder("[");
+                        for (int i = 0; i < strings.length - 1; i++) {
+                            temp.append(strings[i]);
+                            if (i != strings.length - 2)
+                                temp.append(" ");
+                        }
+                        temp.append("]");
+                        return temp.toString();
+                }
+            }
+            else {
+                // word / boolean / number
+                // Dispose of the starting "
+                if (value.charAt(0) == '"')
+                    value = value.substring(1);
+
+                // value is empty
+                if (value.length() == 0)
+                    return "\"";
+
+                // value is not empty
+                switch (operator) {
+                    case "first":
+                        // first
+                        return "\"" + value.charAt(0);
+                    case "last":
+                        // last
+                        return "\"" + value.charAt(value.length() - 1);
+                    case "butfirst":
+                        // butfirst
+                        return "\"" + value.substring(1);
+                    default:
+                        // butlast
+                        return "\"" + value.substring(0, value.length() - 1);
+                }
+            }
         }
 
         else if (operator.equals("erall")) {
