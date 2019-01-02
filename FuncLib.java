@@ -65,7 +65,7 @@ class FuncLib {
 
     // Check whether str is an operator
     boolean isOp(String str, HashSet<String> valid, ListLib ll) {
-        return str.charAt(0) == ':' || valid.contains(str) || (isFunc(str, ll));
+        return str.charAt(0) == ':' || valid.contains(str) || isFunc(str, ll);
     }
 
     // Check whether the starting character is a letter
@@ -231,7 +231,7 @@ class FuncLib {
                 temp.append(string);
                 temp.append(" ");
             }
-            System.out.println(temp);
+//            System.out.println(temp);
 
             Scanner Loadin = new Scanner(temp.toString());
             while (Loadin.hasNext()) {
@@ -294,7 +294,7 @@ class FuncLib {
                     out.append(string);
                     out.append(" ");
                 }
-                out.append(" ]");
+                out.append("]");
 
                 System.out.printf("%-8s\t%s\n", l.name, out.toString());
             }

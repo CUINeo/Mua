@@ -23,6 +23,59 @@ class Interpreter {
         return ll;
     }
 
+    private Object getNext(Scanner in) throws InterruptedException {
+        String str = in.next();
+        Object obj;
+
+        if (fl.isOp(str, ov.operators, ll)) {
+            // str is an operator
+            obj = this.Execute(in, str);
+
+            if (obj.getClass().getName().equals("DataStructure.Null"))
+                // Null return type
+                return new Null();
+            else
+                return obj.toString();
+        }
+        else {
+            // str is not an operator
+            if (str.charAt(0) == '"' || fl.isNum(str) || fl.isBool(str))
+                // Word input
+                return str;
+            else if (str.charAt(0) == '[') {
+                // List input
+                int cnt = 0;
+                int left, right;
+                StringBuilder temp = new StringBuilder();
+                String s = str;
+
+                do {
+                    left = right = 0;
+
+                    for (int i = 0;i < s.length(); i++) {
+                        if (s.charAt(i) == '[')
+                            left++;
+                        if (s.charAt(i) == ']')
+                            right++;
+                    }
+
+                    cnt = cnt + left - right;
+                    temp.append(s);
+
+                    if (cnt > 0) {
+                        temp.append(" ");
+                        s = in.next();
+                    }
+                } while (cnt > 0);
+
+                return temp.toString();
+            }
+            else
+                // Invalid input
+                return new Null();
+        }
+    }
+
     void Run() throws InterruptedException {
         // Print the prompt
         System.out.println("Welcome to MUA!");
@@ -482,8 +535,14 @@ class Interpreter {
 
         else if (operator.equals("make")) {
             // make
-            String name = in.next();
-            String value = in.next();
+            Object obj = getNext(in);
+
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Name cannot be null!", in);
+                return n;
+            }
+            String name = obj.toString();
 
             if (name.charAt(0) != '"') {
                 // The word doesn't begin with "
@@ -493,99 +552,49 @@ class Interpreter {
             else {
                 // Dispose of the beginning "
                 name = name.substring(1);
+
                 if (!fl.isLetter(name)) {
                     // Word name starts with non-letter
                     fl.PrintFalseInfo("The first character of the word name must be a letter!", in);
                     return n;
                 }
 
-                if (fl.isOp(value, ov.operators, ll)) {
-                    // value is an operator
-                    value = Execute(in, value).toString();
+                // Get the value
+                obj = getNext(in);
+                if (obj.getClass().getName().equals("DataStructure.Null")) {
+                    // Null return type
+                    fl.PrintFalseInfo("Value cannot be null!", in);
+                    return n;
+                }
+                String value = obj.toString();
 
-                    if (value.charAt(0) == '[') {
-                        // Make list
-                        if (value.charAt(value.length()-1) != ']') {
-                            // Illegal list
-                            fl.PrintFalseInfowithoutFlush("Illegal list input!");
-                            return n;
-                        }
-                        else {
-                            // Dispose of [ and ]
-                            value = value.substring(1, value.length()-1);
-
-                            String[] content = value.split(" ");
-                            fl.makelist(ll, name, content);
-
-                            value = "[" + value + "]";
-                        }
-                    }
-                    else if (fl.isNum(value) || fl.isBool(value) || value.charAt(0) == '"')
-                        // make word
-                        fl.make(wl, name, value);
-                    else {
-                        // Illegal value
-                        fl.PrintFalseInfo("Illegal value!", in);
+                if (value.charAt(0) == '[') {
+                    // Make list
+                    if (value.charAt(value.length()-1) != ']') {
+                        // Illegal list
+                        fl.PrintFalseInfowithoutFlush("Illegal list input!");
                         return n;
                     }
+                    else {
+                        // Dispose of [ and ]
+                        value = value.substring(1, value.length()-1);
+
+                        String[] content = value.split(" ");
+                        fl.makelist(ll, name, content);
+
+                        value = "[" + value + "]";
+                    }
                 }
+                else if (fl.isNum(value) || fl.isBool(value) || value.charAt(0) == '"')
+                    // make word
+                    fl.make(wl, name, value);
                 else {
-                    // value is not an operator
-                    if (value.charAt(0) == '[') {
-                        // Make list
-
-                        // Get the whole list
-                        int cnt = 0;
-                        StringBuilder temp = new StringBuilder();
-                        String s = value;
-                        int left, right;
-                        do {
-                            left = 0;
-                            right = 0;
-
-                            for (int i = 0; i < s.length(); i++) {
-                                if (s.charAt(i) == '[')
-                                    left++;
-                                if (s.charAt(i) == ']')
-                                    right++;
-                            }
-
-                            cnt = cnt + left - right;
-
-                            temp.append(s);
-
-                            if (cnt != 0) {
-                                temp.append(" ");
-                                s = in.next();
-                            }
-                        } while (cnt > 0);
-
-                        value = temp.toString();
-
-                        if (value.charAt(value.length() - 1) != ']') {
-                            // Illegal list
-                            fl.PrintFalseInfowithoutFlush("Illegal list input!");
-                            return n;
-                        } else {
-                            // Dispose of [ and ]
-                            value = value.substring(1, value.length() - 1).trim();
-
-                            String[] content = value.split(" ");
-                            fl.makelist(ll, name, content);
-
-                            value = "[" + value + "]";
-                        }
-                    } else if (fl.isNum(value) || fl.isBool(value) || value.charAt(0) == '"')
-                        // make word
-                        fl.make(wl, name, value);
-                    else {
-                        // Illegal value
-                        fl.PrintFalseInfo("Illegal value!", in);
-                        return n;
-                    }
+                    // Illegal value
+                    fl.PrintFalseInfo("Illegal value!", in);
+                    return n;
                 }
 
-                // erase operators
+                // make operators
                 ov.operators.remove(name);
 
                 return name + " = " + value;
@@ -594,58 +603,35 @@ class Interpreter {
 
         else if (operator.equals("repeat")) {
             // repeat
-            String str = in.next();
-            Object obj;
-
-            if (fl.isOp(str, ov.operators, ll)) {
-                obj = Execute(in, str);
-
-                if (obj.getClass().getName().equals("DataStructure.Null")) {
-                    // Null return type
-                    fl.PrintFalseInfo("Null return type!", in);
-                    return n;
-                } else
-                    str = obj.toString();
+            Object obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Null return type!", in);
+                return n;
             }
 
-            // Dispose of the starting "
-            if (str.charAt(0) == '"')
-                str = str.substring(1);
-
+            String str = obj.toString();
             if (!fl.isInt(str)) {
-                fl.PrintFalseInfo("Require an integer!", in);
+                // Not an integer
+                fl.PrintFalseInfo("Require an Integer!", in);
                 return n;
             }
 
             // Get the number of execution times
             int num = Integer.valueOf(str);
 
-            str = in.next();
-
-            if (fl.isOp(str, ov.operators, ll)) {
-                obj = Execute(in, str);
-
-                if (obj.getClass().getName().equals("DataStructure.Null")) {
-                    // Null return type
-                    fl.PrintFalseInfo("Null return type!", in);
-                    return n;
-                } else {
-                    str = obj.toString();
-                    if (str.charAt(0) != '[' || str.charAt(str.length()-1) != ']') {
-                        // Not a list
-                        fl.PrintFalseInfo("Require a list!", in);
-                        return n;
-                    }
-                }
+            obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Null return type!", in);
+                return n;
             }
-            else {
-                String temp = in.nextLine();
-                str += temp;
-                if (str.charAt(0) != '[' || str.charAt(str.length()-1) != ']') {
-                    // Not a list
-                    fl.PrintFalseInfo("Require a list!", in);
-                    return n;
-                }
+
+            str = obj.toString();
+            if (str.charAt(0) != '[' || str.charAt(str.length()-1) != ']') {
+                // Not a list
+                fl.PrintFalseInfo("Require a list!", in);
+                return n;
             }
 
             // Dispose of [ and ]
@@ -671,19 +657,13 @@ class Interpreter {
 
         else if (operator.equals("isname")) {
             // isname
-            String str = in.next();
-            Object obj;
+            Object obj = getNext(in);
 
-            if (fl.isOp(str, ov.operators, ll)) {
-                obj = Execute(in, str);
-
-                if (obj.getClass().getName().equals("DataStructure.Null")) {
-                    // Null return type
-                    fl.PrintFalseInfo("Null return type!", in);
-                    return n;
-                } else
-                    str = obj.toString();
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                return "false";
             }
+            String str = obj.toString();
 
             if (str.charAt(0) != '"') {
                 // The word doesn't begin with "
@@ -699,19 +679,13 @@ class Interpreter {
 
         else if (operator.equals("isnumber") || operator.equals("isbool")) {
             // isnumber / isbool
-            String str = in.next();
-            Object obj;
+            Object obj = getNext(in);
 
-            if (fl.isOp(str, ov.operators, ll)) {
-                obj = Execute(in, str);
-
-                if (obj.getClass().getName().equals("DataStructure.Null")) {
-                    // Null return type
-                    fl.PrintFalseInfo("Null return type!", in);
-                    return n;
-                } else
-                    str = obj.toString();
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                return "false";
             }
+            String str = obj.toString();
 
             // Dispose of the starting "
             if (str.charAt(0) == '"')
@@ -735,19 +709,13 @@ class Interpreter {
 
         else if (operator.equals("isword")) {
             // isword
-            String str = in.next();
-            Object obj;
+            Object obj = getNext(in);
 
-            if (fl.isOp(str, ov.operators, ll)) {
-                obj = Execute(in, str);
-
-                if (obj.getClass().getName().equals("DataStructure.Null")) {
-                    // Null return type
-                    fl.PrintFalseInfo("Null return type!", in);
-                    return n;
-                } else
-                    str = obj.toString();
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                return "false";
             }
+            String str = obj.toString();
 
             if (str.charAt(0) != '"') {
                 // Start with no "
@@ -770,23 +738,13 @@ class Interpreter {
 
         else if (operator.equals("islist")) {
             // islist
-            String str = in.next();
-            Object obj;
+            Object obj = getNext(in);
 
-            if (fl.isOp(str, ov.operators, ll)) {
-                obj = Execute(in, str);
-
-                if (obj.getClass().getName().equals("DataStructure.Null")) {
-                    // Null return type
-                    fl.PrintFalseInfo("Null return type!", in);
-                    return n;
-                } else
-                    str = obj.toString();
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                return "false";
             }
-            else {
-                String temp = in.nextLine();
-                str += temp;
-            }
+            String str = obj.toString();
 
             if (str.charAt(0) == '[' && str.charAt(str.length()-1) == ']')
                 return "true";
@@ -796,23 +754,13 @@ class Interpreter {
 
         else if (operator.equals("isempty")) {
             // isempty
-            String str = in.next();
-            Object obj;
+            Object obj = getNext(in);
 
-            if (fl.isOp(str, ov.operators, ll)) {
-                obj = Execute(in, str);
-
-                if (obj.getClass().getName().equals("DataStructure.Null")) {
-                    // Null return type
-                    fl.PrintFalseInfo("Null return type!", in);
-                    return n;
-                } else
-                    str = obj.toString();
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                return "false";
             }
-            else {
-                String temp = in.nextLine();
-                str += temp;
-            }
+            String str = obj.toString();
 
             // Dispose of the space
             str = str.replace(" ", "");
@@ -884,10 +832,6 @@ class Interpreter {
                 name += temp;
             }
 
-            // Check if the name is an instruction
-            if (fl.isOp(name, ov.operators, ll))
-                name = Execute(in, name).toString().substring(1);
-
             if (fl.isname(wl, name)) {
                 // Word
                 for (Word w : wl.wordlist) {
@@ -955,23 +899,15 @@ class Interpreter {
 
         else if (operator.equals("print")) {
             // print
-            String operand = in.next();
-
-            if (fl.isOp(operand, ov.operators, ll)) {
-                // Execute the instruction
-                Object obj = Execute(in, operand);
-
-                if (obj.getClass().getName().equals("DataStructure.Null")) {
-                    fl.PrintFalseInfo(operand, in);
-                    return n;
-                }
-                System.out.println(obj.toString());
+            Object obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Illegal value
+                fl.PrintFalseInfowithoutFlush("Illegal value!");
+                return n;
             }
-            else {
-                String temp = in.nextLine();
-                operand += temp;
-                System.out.println(operand);
-            }
+
+            String operand = obj.toString();
+            System.out.println(operand);
         }
 
         else if (operator.equals("read")) {
@@ -1247,6 +1183,80 @@ class Interpreter {
             return String.valueOf((int)ret);
         }
 
+        else if (operator.equals("word")) {
+            // word
+            String word1 = in.next();
+            Object obj;
+
+            if (fl.isOp(word1, ov.operators, ll)) {
+                obj = Execute(in, word1);
+
+                if (obj.getClass().getName().equals("DataStructure.Null")) {
+                    // Null return type
+                    fl.PrintFalseInfo("Null return type!", in);
+                    return n;
+                } else
+                    word1 = obj.toString();
+            }
+
+            if (word1.charAt(0) != '"' && !fl.isNum(word1) && !fl.isBool(word1)) {
+                fl.PrintFalseInfo("Require a word/number/bool variable!", in);
+                return n;
+            }
+
+            // Dispose of the starting "
+            if (word1.charAt(0) == '"')
+                word1 = word1.substring(1);
+
+            String word2 = in.next();
+            if (fl.isOp(word2, ov.operators, ll)) {
+                obj = Execute(in, word2);
+
+                if (obj.getClass().getName().equals("DataStructure.Null")) {
+                    // Null return type
+                    fl.PrintFalseInfo("Null return type!", in);
+                    return n;
+                } else
+                    word2 = obj.toString();
+            }
+
+            if (word2.charAt(0) != '"' && !fl.isNum(word2) && !fl.isBool(word2)) {
+                fl.PrintFalseInfo("Require a word/number/bool variable!", in);
+                return n;
+            }
+
+            // Dispose of the starting "
+            if (word2.charAt(0) == '"')
+                word2 = word2.substring(1);
+
+            word1 += word2;
+
+            if (fl.isNum(word1))
+                return word1;
+            return "\"" + word1;
+        }
+
+        else if (operator.equals("if")) {
+            // if
+        }
+
+        else if (operator.equals("sentence")) {
+            // sentence
+        }
+
+        else if (operator.equals("list")) {
+            // list
+        }
+
+        else if (operator.equals("join")) {
+            // join
+        }
+
+        else if (operator.equals("first") || operator.equals("last")
+                || operator.equals("butfirst") || operator.equals("butlast")) {
+            // first / last / butfirst / butlast
+        }
+
         else if (operator.equals("erall")) {
             // erase all
             fl.erall(this);
@@ -1354,33 +1364,18 @@ class Interpreter {
 
         else if (operator.equals("run")) {
             // run
-            String str = in.next();
-            Object obj;
-
-            if (fl.isOp(str, ov.operators, ll)) {
-                obj = Execute(in, str);
-
-                if (obj.getClass().getName().equals("DataStructure.Null")) {
-                    // Null return type
-                    fl.PrintFalseInfo("Null return type!", in);
-                    return n;
-                } else {
-                    str = obj.toString();
-                    if (str.charAt(0) != '[' || str.charAt(str.length()-1) != ']') {
-                        // Not a list
-                        fl.PrintFalseInfo("Require a list!", in);
-                        return n;
-                    }
-                }
+            Object obj = getNext(in);
+            if (obj.getClass().getName().equals("DataStructure.Null")) {
+                // Null return type
+                fl.PrintFalseInfo("Null return type!", in);
+                return n;
             }
-            else {
-                String temp = in.nextLine();
-                str += temp;
-                if (str.charAt(0) != '[' || str.charAt(str.length()-1) != ']') {
-                    // Not a list
-                    fl.PrintFalseInfo("Require a list!", in);
-                    return n;
-                }
+
+            String str = obj.toString();
+            if (str.charAt(0) != '[' || str.charAt(str.length()-1) != ']') {
+                // Not a list
+                fl.PrintFalseInfo("Require a list!", in);
+                return n;
             }
 
             // Dispose of [ and ]
